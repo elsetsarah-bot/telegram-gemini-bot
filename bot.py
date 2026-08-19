@@ -2,8 +2,6 @@ import os
 import requests
 from flask import Flask, request, jsonify
 import google.generativeai as genai
-from PIL import Image
-from io import BytesIO
 
 app = Flask(__name__)
 
@@ -21,7 +19,7 @@ def download_photo(file_id):
     file_path = response["result"]["file_path"]
     file_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_path}"
     img_response = requests.get(file_url)
-    return Image.open(BytesIO(img_response.content))
+    return img_response.content  # Возвращаем bytes, а не Image
 
 def send_message(chat_id, text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -34,21 +32,21 @@ def webhook():
         msg = data["message"]
         chat_id = msg["chat"]["id"]
         user_text = msg.get("text", "")
-        photo = None
+        photo_data = None
 
         if "photo" in msg:
             file_id = msg["photo"][-1]["file_id"]
-            photo = download_photo(file_id)
+            photo_data = download_photo(file_id)
 
         if user_text == "/start":
             send_message(chat_id, "Привет! Отправь фото с вопросом, и я проанализирую его.")
 
-        elif photo and user_text:
-            response = model.generate_content([user_text, photo])
+        elif photo_data and user_text:
+            response = model.generate_content([user_text, photo_data])
             send_message(chat_id, response.text)
 
-        elif photo:
-            response = model.generate_content(["Опиши, что ты видишь на этом изображении", photo])
+        elif photo_data:
+            response = model.generate_content(["Опиши, что ты видишь на этом изображении", photo_data])
             send_message(chat_id, response.text)
 
         elif user_text:
