@@ -1,11 +1,11 @@
 import base64
 import os
+import traceback
 import requests
 from flask import Flask, request
 
 app = Flask(__name__)
 
-# Твои данные уже вшиты
 TELEGRAM_TOKEN = "8921655911:AAGTj-kaxp0DMGcvv83d3EjCSSSoHkv-Q6I"
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
@@ -27,7 +27,7 @@ def webhook():
         user_text = message.get("caption") or message.get("text", "")
         content_list = []
 
-        # Обработка картинок через GPT-4o-mini
+        # Обработка картинок
         if "photo" in message:
             photo = message["photo"][-1]
             file_id = photo["file_id"]
@@ -76,22 +76,29 @@ def webhook():
         }
 
         # Запрос к GitHub Models API
+        answer_text = "⚠️ Ошибка обработки запроса."
         try:
             ai_response = requests.post(GITHUB_URL, headers=headers, json=payload, timeout=25)
+            print("GitHub Response Code:", ai_response.status_code)
+            print("GitHub Response Body:", ai_response.text)
+            
             if ai_response.status_code == 200:
                 res_json = ai_response.json()
                 answer_text = res_json["choices"][0]["message"]["content"]
             else:
-                answer_text = f"⚠️ Ошибка GitHub API: {ai_response.text}"
-        except Exception:
+                answer_text = f"⚠️ Ошибка GitHub API ({ai_response.status_code}): {ai_response.text}"
+        except Exception as e:
+            print("Exception during GitHub request:", str(e))
             answer_text = "⚠️ Ошибка соединения с GitHub Models."
 
         # Отправка ответа в Telegram
         send_url = f"{TELEGRAM_API_URL}/sendMessage"
-        requests.post(send_url, json={"chat_id": chat_id, "text": answer_text}, timeout=5)
+        send_res = requests.post(send_url, json={"chat_id": chat_id, "text": answer_text}, timeout=5)
+        print("Telegram Send Response:", send_res.text)
 
-    except Exception:
-        pass
+    except Exception as e:
+        print("CRITICAL WEBHOOK ERROR:")
+        traceback.print_exc()
 
     return "OK", 200
 
