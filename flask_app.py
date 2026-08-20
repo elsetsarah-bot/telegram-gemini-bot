@@ -4,15 +4,14 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
-# Учетные данные
-TOKEN = "8921655911:AAGTj-kaxp0DMGcvv83d3EjCSSSoHkv-Q6I"
-TELEGRAM_API_URL = f"https://api.telegram.org/bot{TOKEN}"
+# Твои данные
+TELEGRAM_TOKEN = "8921655911:AAGTj-kaxp0DMGcvv83d3EjCSSSoHkv-Q6I"
+TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
-CLOUDFLARE_ACCOUNT_ID = "93999d5bc0b9338893c1c5c4336f8470"
-CLOUDFLARE_AUTH_TOKEN = "cfat_OfxPILyp9SSgWDjRvpBm0F4eCTx3WiWkvJ31C3rO89992293"
-CLOUDFLARE_URL = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.2-11b-vision-instruct"
+GROQ_API_KEY = "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"
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-@app.route(f"/{TOKEN}", methods=["POST"])
+@app.route(f"/{TELEGRAM_TOKEN}", methods=["POST"])
 def webhook():
     try:
         data = request.get_json(silent=True)
@@ -25,65 +24,36 @@ def webhook():
             return "OK", 200
 
         user_text = message.get("caption") or message.get("text", "")
+        if not user_text:
+            return "OK", 200
 
         headers = {
-            "Authorization": f"Bearer {CLOUDFLARE_AUTH_TOKEN}",
+            "Authorization": f"Bearer {GROQ_API_KEY}",
             "Content-Type": "application/json"
         }
 
-        payload = {}
+        payload = {
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
+                {"role": "system", "content": "Ты — умный и дружелюбный помощник. Всегда общайся на русском языке."},
+                {"role": "user", "content": user_text}
+            ]
+        }
 
-        # Проверяем наличие фото
-        if "photo" in message:
-            photo = message["photo"][-1]
-            file_id = photo["file_id"]
-            
-            file_info_url = f"{TELEGRAM_API_URL}/getFile?file_id={file_id}"
-            file_info_res = requests.get(file_info_url, timeout=5).json()
-            
-            if file_info_res.get("ok"):
-                file_path = file_info_res["result"]["file_path"]
-                download_url = f"https://api.telegram.org/file/bot{TOKEN}/{file_path}"
-                
-                img_res = requests.get(download_url, timeout=10)
-                if img_res.status_code == 200:
-                    image_array = list(bytes(img_res.content))
-                    payload = {
-                        "messages": [
-                            {"role": "system", "content": "Ты — умный и дружелюбный помощник. Всегда общайся на русском языке."},
-                            {"role": "user", "content": user_text if user_text else "Что изображено на этой картинке?"}
-                        ],
-                        "image": image_array
-                    }
-
-        # Если фото нет — обычный текст
-        if not payload:
-            if not user_text:
-                return "OK", 200
-            payload = {
-                "messages": [
-                    {"role": "system", "content": "Ты — умный и дружелюбный помощник. Всегда общайся на русском языке."},
-                    {"role": "user", "content": user_text}
-                ]
-            }
-
-        # Запрос к Cloudflare AI
+        # Запрос к Groq API
         try:
-            ai_response = requests.post(CLOUDFLARE_URL, headers=headers, json=payload, timeout=25)
+            ai_response = requests.post(GROQ_URL, headers=headers, json=payload, timeout=25)
             if ai_response.status_code == 200:
                 res_json = ai_response.json()
-                answer_text = res_json.get("result", {}).get("response", "Пустой ответ от нейросети.")
+                answer_text = res_json.get("choices", [{}])[0].get("message", {}).get("content", "Пустой ответ от нейросети.")
             else:
-                answer_text = f"⚠️ Ошибка API Cloudflare: {ai_response.text}"
+                answer_text = f"⚠️ Ошибка API Groq: {ai_response.text}"
         except Exception:
-            answer_text = "⚠️ Ошибка соединения с Cloudflare AI."
+            answer_text = "⚠️ Ошибка соединения с Groq AI."
 
-        # Отправка ответа в Телеграм
+        # Отправка ответа в Telegram
         send_url = f"{TELEGRAM_API_URL}/sendMessage"
-        try:
-            requests.post(send_url, json={"chat_id": chat_id, "text": answer_text}, timeout=5)
-        except:
-            pass
+        requests.post(send_url, json={"chat_id": chat_id, "text": answer_text}, timeout=5)
 
     except Exception:
         pass
@@ -93,9 +63,9 @@ def webhook():
 @app.route('/')
 def index():
     render_url = request.host_url.rstrip('/')
-    webhook_url = f"{render_url}/{TOKEN}"
+    webhook_url = f"{render_url}/{TELEGRAM_TOKEN}"
     requests.get(f"{TELEGRAM_API_URL}/setWebhook?url={webhook_url}")
-    return "Bot is running perfectly on Cloudflare AI!"
+    return "Bot is running perfectly on Groq AI!"
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
