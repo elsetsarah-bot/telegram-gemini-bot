@@ -33,7 +33,7 @@ def webhook():
         }
 
         payload = {
-            "model": "llama-3.1-70b-versatile",
+            "model": "llama-3.1-8b-instant",
             "messages": [
                 {"role": "system", "content": "Ты — умный и дружелюбный помощник. Всегда общайся на русском языке."},
                 {"role": "user", "content": user_text}
