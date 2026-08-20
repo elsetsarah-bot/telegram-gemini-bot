@@ -9,9 +9,9 @@ app = Flask(__name__)
 TELEGRAM_TOKEN = "8921655911:AAGTj-kaxp0DMGcvv83d3EjCSSSoHkv-Q6I"
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
-# Твой новый ключ OpenAI Project
-OPENAI_API_KEY = "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"
-OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+# Исправлено: gsk- с маленькой буквы
+GROQ_API_KEY = "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"
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 @app.route(f"/{TELEGRAM_TOKEN}", methods=["POST"])
 def webhook():
@@ -29,7 +29,7 @@ def webhook():
         user_text = message.get("caption") or message.get("text", "")
         content_list = []
 
-        # Обработка картинок через OpenAI Vision
+        # Обработка картинок через Groq Vision (llama-3.2-90b-vision-preview)
         if "photo" in message:
             photo = message["photo"][-1]
             file_id = photo["file_id"]
@@ -57,12 +57,12 @@ def webhook():
             content_list.insert(0, {"type": "text", "text": "Что изображено на этой картинке?"})
 
         headers = {
-            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Authorization": f"Bearer {GROQ_API_KEY}",
             "Content-Type": "application/json"
         }
 
         payload = {
-            "model": "gpt-4o-mini",
+            "model": "llama-3.2-90b-vision-preview",
             "messages": [
                 {
                     "role": "system",
@@ -76,21 +76,21 @@ def webhook():
             "max_tokens": 1000
         }
 
-        # Запрос к OpenAI API
+        # Запрос к Groq API
         answer_text = "⚠️ Ошибка обработки запроса."
         try:
-            ai_response = requests.post(OPENAI_URL, headers=headers, json=payload, timeout=25)
-            print("OpenAI Response Code:", ai_response.status_code)
-            print("OpenAI Response Body:", ai_response.text)
+            ai_response = requests.post(GROQ_URL, headers=headers, json=payload, timeout=25)
+            print("Groq Response Code:", ai_response.status_code)
+            print("Groq Response Body:", ai_response.text)
             
             if ai_response.status_code == 200:
                 res_json = ai_response.json()
                 answer_text = res_json["choices"][0]["message"]["content"]
             else:
-                answer_text = f"⚠️ Ошибка OpenAI API ({ai_response.status_code}): {ai_response.text}"
+                answer_text = f"⚠️ Ошибка Groq API ({ai_response.status_code}): {ai_response.text}"
         except Exception as e:
-            print("Exception during OpenAI request:", str(e))
-            answer_text = "⚠️ Ошибка соединения с OpenAI."
+            print("Exception during Groq request:", str(e))
+            answer_text = "⚠️ Ошибка соединения с Groq."
 
         # Отправка ответа в Telegram
         send_url = f"{TELEGRAM_API_URL}/sendMessage"
