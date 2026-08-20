@@ -9,7 +9,8 @@ app = Flask(__name__)
 TELEGRAM_TOKEN = "8921655911:AAGTj-kaxp0DMGcvv83d3EjCSSSoHkv-Q6I"
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
-GITHUB_TOKEN = "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"
+# Твой новый токен от GitHub
+GITHUB_TOKEN = "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"
 GITHUB_URL = "https://models.inference.ai.azure.com/v1/chat/completions"
 
 @app.route(f"/{TELEGRAM_TOKEN}", methods=["POST"])
