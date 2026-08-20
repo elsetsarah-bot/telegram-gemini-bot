@@ -1,4 +1,3 @@
-import base64
 import os
 import traceback
 import requests
@@ -9,7 +8,7 @@ app = Flask(__name__)
 TELEGRAM_TOKEN = "8921655911:AAGTj-kaxp0DMGcvv83d3EjCSSSoHkv-Q6I"
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
-# Исправлено: gsk- с маленькой буквы
+# Твой ключ Groq
 GROQ_API_KEY = "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"
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
@@ -27,34 +26,11 @@ def webhook():
             return "OK", 200
 
         user_text = message.get("caption") or message.get("text", "")
-        content_list = []
-
-        # Обработка картинок через Groq Vision (llama-3.2-90b-vision-preview)
-        if "photo" in message:
-            photo = message["photo"][-1]
-            file_id = photo["file_id"]
-            
-            file_info_res = requests.get(f"{TELEGRAM_API_URL}/getFile?file_id={file_id}", timeout=5).json()
-            if file_info_res.get("ok"):
-                file_path = file_info_res["result"]["file_path"]
-                download_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_path}"
-                
-                img_res = requests.get(download_url, timeout=10)
-                if img_res.status_code == 200:
-                    b64_img = base64.b64encode(img_res.content).decode("utf-8")
-                    content_list.append({
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{b64_img}"
-                        }
-                    })
-
-        if user_text:
-            content_list.append({"type": "text", "text": user_text})
-        elif not content_list:
-            return "OK", 200
-        elif not user_text and content_list:
-            content_list.insert(0, {"type": "text", "text": "Что изображено на этой картинке?"})
+        if not user_text:
+            if "photo" in message:
+                user_text = "Что изображено на этой картинке?"
+            else:
+                return "OK", 200
 
         headers = {
             "Authorization": f"Bearer {GROQ_API_KEY}",
@@ -62,7 +38,7 @@ def webhook():
         }
 
         payload = {
-            "model": "llama-3.2-90b-vision-preview",
+            "model": "llama-3.3-70b-versatile",
             "messages": [
                 {
                     "role": "system",
@@ -70,7 +46,7 @@ def webhook():
                 },
                 {
                     "role": "user",
-                    "content": content_list
+                    "content": user_text
                 }
             ],
             "max_tokens": 1000
