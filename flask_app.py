@@ -10,7 +10,7 @@ TELEGRAM_TOKEN = "8921655911:AAGTj-kaxp0DMGcvv83d3EjCSSSoHkv-Q6I"
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
 # Твой новый ключ OpenAI Project
-OPENAI_API_KEY = "Sk-proj-1Rrm6HzVKVvPB-EwaK0yyEYEkMvYOcc_Xbr1CTduz4lH8zxf_bpHNJes6T-uHHQZVTv90UzOj6T3BlbkFJ4IfxiPoMqETXgeHvVClqRlLsvLFCNk_TFNdYggs-6nfbWdRqlNplQkOhKiitu0LL4K1KGLOE8A"
+OPENAI_API_KEY = "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"
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 
 @app.route(f"/{TELEGRAM_TOKEN}", methods=["POST"])
