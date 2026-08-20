@@ -8,9 +8,9 @@ app = Flask(__name__)
 TELEGRAM_TOKEN = "8921655911:AAGTj-kaxp0DMGcvv83d3EjCSSSoHkv-Q6I"
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
-# Твой ключ xAI (Grok)
-XAI_API_KEY = "sk-xt-6c26aa139b80b8ca3eef6d861621156e1f623bfecba81069"
-XAI_URL = "https://api.x.ai/v1/chat/completions"
+# Твой ключ Qwen (DashScope)
+QWEN_API_KEY = "Sk-ws-H.DMYMMMR.PxaV.MEQCIEJsuq_d8zbo1fR01jBfrKofXl3_bhSziskuPKqFQ7cIAiBLjNdqN312J5_bDadKOtxtfVtxKgIEYkb-piDgDxGj0A"
+QWEN_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions"
 
 @app.route(f"/{TELEGRAM_TOKEN}", methods=["POST"])
 def webhook():
@@ -27,7 +27,7 @@ def webhook():
         user_text = message.get("caption") or message.get("text", "")
         content_list = []
 
-        # Обработка картинок через Grok Vision
+        # Обработка картинок через Qwen Vision
         if "photo" in message:
             photo = message["photo"][-1]
             file_id = photo["file_id"]
@@ -55,12 +55,12 @@ def webhook():
             content_list.insert(0, {"type": "text", "text": "Что изображено на этой картинке?"})
 
         headers = {
-            "Authorization": f"Bearer {XAI_API_KEY}",
+            "Authorization": f"Bearer {QWEN_API_KEY}",
             "Content-Type": "application/json"
         }
 
         payload = {
-            "model": "grok-2-vision",
+            "model": "qwen-vl-max",
             "messages": [
                 {
                     "role": "system",
@@ -74,17 +74,17 @@ def webhook():
             "max_tokens": 1000
         }
 
-        # Запрос к xAI (Grok) API
+        # Запрос к Qwen API
         answer_text = "⚠️ Ошибка обработки запроса."
         try:
-            ai_response = requests.post(XAI_URL, headers=headers, json=payload, timeout=25)
+            ai_response = requests.post(QWEN_URL, headers=headers, json=payload, timeout=25)
             if ai_response.status_code == 200:
                 res_json = ai_response.json()
                 answer_text = res_json["choices"][0]["message"]["content"]
             else:
-                answer_text = f"⚠️ Ошибка xAI API ({ai_response.status_code}): {ai_response.text}"
+                answer_text = f"⚠️ Ошибка Qwen API ({ai_response.status_code}): {ai_response.text}"
         except Exception:
-            answer_text = "⚠️ Ошибка соединения с xAI."
+            answer_text = "⚠️ Ошибка соединения с Qwen."
 
         # Отправка ответа в Telegram
         send_url = f"{TELEGRAM_API_URL}/sendMessage"
@@ -100,7 +100,7 @@ def index():
     render_url = request.host_url.rstrip('/')
     webhook_url = f"{render_url}/{TELEGRAM_TOKEN}"
     requests.get(f"{TELEGRAM_API_URL}/setWebhook?url={webhook_url}")
-    return "Bot is running smoothly on xAI Grok API!"
+    return "Bot is running smoothly on Qwen API!"
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
