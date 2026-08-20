@@ -4,12 +4,12 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
-# Полные учетные данные
+# Учетные данные
 TOKEN = "8921655911:AAGTj-kaxp0DMGcvv83d3EjCSSSoHkv-Q6I"
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TOKEN}"
 
 CLOUDFLARE_ACCOUNT_ID = "93999d5bc0b9338893c1c5c4336f8470"
-CLOUDFLARE_AUTH_TOKEN = "cfat_QuOS5b4bJLnOlmGxQmeryEUDXXc8F7GhAlh0AWphfd95afad"
+CLOUDFLARE_AUTH_TOKEN = "cfat_OfxPILyp9SSgWDjRvpBm0F4eCTx3WiWkvJ31C3rO89992293"
 CLOUDFLARE_URL = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.2-11b-vision-instruct"
 
 @app.route(f"/{TOKEN}", methods=["POST"])
