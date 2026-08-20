@@ -10,7 +10,7 @@ app = Flask(__name__)
 TOKEN = "8921655911:AAGTj-kaxp0DMGcvv83d3EjCSSSoHkv-Q6I"
 GEMINI_API_KEY = "AQ.Ab8RN6IjLdwEbO9sE00WJxZt9Awuk7gqeMNuzkfHFY833YqDSw"
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TOKEN}"
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent"
 
 chat_histories = {}
 user_personas = {}
@@ -189,7 +189,11 @@ def webhook():
         typing_ind = TypingIndicator(chat_id)
         
         try:
-            response = requests.post(GEMINI_URL, headers={"Content-Type": "application/json"}, json=payload, timeout=25)
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {GEMINI_API_KEY}"
+            }
+            response = requests.post(GEMINI_URL, headers=headers, json=payload, timeout=25)
             res_json = response.json()
             
             if "candidates" in res_json and len(res_json["candidates"]) > 0:
@@ -203,10 +207,7 @@ def webhook():
                 if len(chat_histories[chat_id]) > 0:
                     chat_histories[chat_id].pop()
                 err_msg = res_json['error'].get('message', '')
-                if "Quota exceeded" in err_msg:
-                    send_main_menu(chat_id, "⏳ Лимит Google (20 запросов в минуту) исчерпан. Подождите минуту.")
-                else:
-                    send_main_menu(chat_id, f"⚠️ API Error: {err_msg}")
+                send_main_menu(chat_id, f"⚠️ API Error: {err_msg}")
             else:
                 typing_ind.stop()
                 if len(chat_histories[chat_id]) > 0:
