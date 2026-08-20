@@ -1,6 +1,5 @@
 import base64
 import os
-import traceback
 import requests
 from flask import Flask, request
 
@@ -9,9 +8,9 @@ app = Flask(__name__)
 TELEGRAM_TOKEN = "8921655911:AAGTj-kaxp0DMGcvv83d3EjCSSSoHkv-Q6I"
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
-# Твой новый токен от GitHub
-GITHUB_TOKEN = "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"
-GITHUB_URL = "https://models.inference.ai.azure.com/v1/chat/completions"
+# Твой ключ OpenAI
+OPENAI_API_KEY = "sk-OsMMq65tXdfOIlTUYtocSL7NCsmA7CerN77OkEv29dODg1EA"
+OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 
 @app.route(f"/{TELEGRAM_TOKEN}", methods=["POST"])
 def webhook():
@@ -28,7 +27,7 @@ def webhook():
         user_text = message.get("caption") or message.get("text", "")
         content_list = []
 
-        # Обработка картинок
+        # Обработка картинок через OpenAI (gpt-4o-mini)
         if "photo" in message:
             photo = message["photo"][-1]
             file_id = photo["file_id"]
@@ -56,7 +55,7 @@ def webhook():
             content_list.insert(0, {"type": "text", "text": "Что изображено на этой картинке?"})
 
         headers = {
-            "Authorization": f"Bearer {GITHUB_TOKEN}",
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
             "Content-Type": "application/json"
         }
 
@@ -72,34 +71,27 @@ def webhook():
                     "content": content_list
                 }
             ],
-            "temperature": 0.7,
             "max_tokens": 1000
         }
 
-        # Запрос к GitHub Models API
+        # Запрос к OpenAI API
         answer_text = "⚠️ Ошибка обработки запроса."
         try:
-            ai_response = requests.post(GITHUB_URL, headers=headers, json=payload, timeout=25)
-            print("GitHub Response Code:", ai_response.status_code)
-            print("GitHub Response Body:", ai_response.text)
-            
+            ai_response = requests.post(OPENAI_URL, headers=headers, json=payload, timeout=25)
             if ai_response.status_code == 200:
                 res_json = ai_response.json()
                 answer_text = res_json["choices"][0]["message"]["content"]
             else:
-                answer_text = f"⚠️ Ошибка GitHub API ({ai_response.status_code}): {ai_response.text}"
-        except Exception as e:
-            print("Exception during GitHub request:", str(e))
-            answer_text = "⚠️ Ошибка соединения с GitHub Models."
+                answer_text = f"⚠️ Ошибка OpenAI API ({ai_response.status_code}): {ai_response.text}"
+        except Exception:
+            answer_text = "⚠️ Ошибка соединения с OpenAI."
 
         # Отправка ответа в Telegram
         send_url = f"{TELEGRAM_API_URL}/sendMessage"
-        send_res = requests.post(send_url, json={"chat_id": chat_id, "text": answer_text}, timeout=5)
-        print("Telegram Send Response:", send_res.text)
+        requests.post(send_url, json={"chat_id": chat_id, "text": answer_text}, timeout=5)
 
-    except Exception as e:
-        print("CRITICAL WEBHOOK ERROR:")
-        traceback.print_exc()
+    except Exception:
+        pass
 
     return "OK", 200
 
@@ -108,7 +100,7 @@ def index():
     render_url = request.host_url.rstrip('/')
     webhook_url = f"{render_url}/{TELEGRAM_TOKEN}"
     requests.get(f"{TELEGRAM_API_URL}/setWebhook?url={webhook_url}")
-    return "Bot is running smoothly on GitHub Models API!"
+    return "Bot is running smoothly on official OpenAI API!"
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
